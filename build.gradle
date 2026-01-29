@@ -1,0 +1,56 @@
+plugins {
+    id 'groovy'
+}
+
+group = 'com.rundeck.plugin'
+version = '1.0.0'
+sourceCompatibility = '11'
+targetCompatibility = '11'
+
+ext {
+    rundeckVersion = '5.18.0-20251216'
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    pluginLibs
+    implementation.extendsFrom pluginLibs
+}
+
+dependencies {
+    implementation 'org.codehaus.groovy:groovy-all:3.0.19'
+    compileOnly "org.rundeck:rundeck-core:${rundeckVersion}"
+    testImplementation "org.rundeck:rundeck-core:${rundeckVersion}"
+    
+    // SSH/SCP support
+    pluginLibs 'com.jcraft:jsch:0.1.55'
+    
+    // Testing
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.mockito:mockito-core:4.11.0'
+}
+
+jar {
+    manifest {
+        attributes(
+            'Rundeck-Plugin-Classnames': 'com.rundeck.plugin.nodecopy.NodeFileCopyPlugin',
+            'Rundeck-Plugin-Version': '1.2',
+            'Rundeck-Plugin-Archive': 'true',
+            'Rundeck-Plugin-File-Version': version
+        )
+    }
+    
+    // Include plugin dependencies
+    from {
+        configurations.pluginLibs.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+test {
+    useJUnit()
+}
