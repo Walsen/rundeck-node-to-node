@@ -227,21 +227,79 @@ class FileCopyService {
         try {
             File localFile = new File(localPath)
             
-            // Ensure remote directory exists
-            Path parentPath = Paths.get(remotePath).parent
-            if (parentPath) {
-                createRemoteDirectories(sftp, parentPath.toString())
-            }
-
             if (localFile.directory) {
-                localFile.listFiles()?.each { file ->
+                File[] contents = localFile.listFiles()
+                
+                // Check if this is a single file being renamed
+                // (temp dir contains exactly one file and dest path looks like a file)
+                if (contents?.length == 1 && !contents[0].directory && !remotePath.endsWith("/")) {
+                    File singleFile = contents[0]
+                    String destFileName = Paths.get(remotePath).fileName?.toString()
+                    
+                    // If destination filename differs from source, treat as file rename
+                    if (destFileName && destFileName != singleFile.name) {
+                        Path parentPath = Paths.get(remotePath).parent
+                        if (parentPath) {
+                            createRemoteDirectories(sftp, parentPath.toString())
+                        }
+                        sftp.put(singleFile.absolutePath, remotePath)
+                        logger.log(4, "Uploaded: ${remotePath}")
+                        if (preserve) {
+                            int mtime = (int) (singleFile.lastModified() / 1000)
+                            sftp.setMtime(remotePath, mtime)
+                        }
+                        return
+                    }
+                }
+                
+                // Standard directory copy - ensure remote directory exists and copy contents
+                createRemoteDirectories(sftp, remotePath)
+                contents?.each { file ->
                     uploadPath(sftp, file, remotePath, preserve)
                 }
             } else {
-                uploadPath(sftp, localFile, remotePath, preserve)
+                // Source is a single file (shouldn't happen in via-rundeck mode, but handle it)
+                boolean destIsFile = !remotePath.endsWith("/") && isDestinationAFile(sftp, remotePath, localFile.name)
+                
+                if (destIsFile) {
+                    Path parentPath = Paths.get(remotePath).parent
+                    if (parentPath) {
+                        createRemoteDirectories(sftp, parentPath.toString())
+                    }
+                    sftp.put(localFile.absolutePath, remotePath)
+                    logger.log(4, "Uploaded: ${remotePath}")
+                    if (preserve) {
+                        int mtime = (int) (localFile.lastModified() / 1000)
+                        sftp.setMtime(remotePath, mtime)
+                    }
+                } else {
+                    createRemoteDirectories(sftp, remotePath)
+                    uploadPath(sftp, localFile, remotePath, preserve)
+                }
             }
         } finally {
             sftp.disconnect()
+        }
+    }
+
+    /**
+     * Determine if destination path is a file or directory.
+     * Returns true if destination should be treated as a file path.
+     */
+    private boolean isDestinationAFile(ChannelSftp sftp, String remotePath, String sourceFileName) {
+        // If remote path already exists, check if it's a directory
+        try {
+            SftpATTRS attrs = sftp.stat(remotePath)
+            return !attrs.dir
+        } catch (SftpException e) {
+            // Path doesn't exist - infer from path structure
+            // If the destination filename differs from source, treat as file rename
+            String destFileName = Paths.get(remotePath).fileName?.toString()
+            if (destFileName && destFileName != sourceFileName) {
+                return true
+            }
+            // Otherwise treat as directory
+            return false
         }
     }
 
