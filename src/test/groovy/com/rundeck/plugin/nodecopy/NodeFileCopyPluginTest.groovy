@@ -1,27 +1,19 @@
 package com.rundeck.plugin.nodecopy
 
-import com.dtolabs.rundeck.plugins.PluginLogger
-import com.dtolabs.rundeck.plugins.step.PluginStepContext
 import org.junit.Before
 import org.junit.Test
 
 import static org.junit.Assert.*
-import static org.mockito.Mockito.*
 
 /**
  * Unit tests for NodeFileCopyPlugin.
  */
 class NodeFileCopyPluginTest {
 
-    PluginStepContext context
-    PluginLogger logger
     NodeFileCopyPlugin plugin
 
     @Before
     void setUp() {
-        context = mock(PluginStepContext)
-        logger = mock(PluginLogger)
-        when(context.getLogger()).thenReturn(logger)
         plugin = new NodeFileCopyPlugin()
     }
 
@@ -96,5 +88,98 @@ class NodeFileCopyPluginTest {
         
         assertEquals(1, nodes.size())
         assertEquals("single-node", nodes[0])
+    }
+
+    @Test
+    void testParseEmptyDestinationNodes() {
+        String input = ""
+        List<String> nodes = input.split(',').collect { it.trim() }.findAll { it }
+        
+        assertEquals(0, nodes.size())
+    }
+
+    @Test
+    void testTransferModeValues() {
+        assertTrue(['direct', 'via-rundeck'].contains('direct'))
+        assertTrue(['direct', 'via-rundeck'].contains('via-rundeck'))
+    }
+
+    @Test
+    void testBooleanConfigParsing() {
+        assertEquals(true, "true".toBoolean())
+        assertEquals(false, "false".toBoolean())
+        assertEquals(false, "".toBoolean())
+        assertEquals(false, "invalid".toBoolean())
+    }
+
+    @Test
+    void testTimeoutConfigParsing() {
+        assertEquals(30, "30".toInteger())
+        assertEquals(60, "60".toInteger())
+    }
+
+    @Test
+    void testPluginDefaultValues() {
+        assertNull(plugin.sourceNode)
+        assertNull(plugin.sourcePath)
+        assertNull(plugin.destinationNodes)
+        assertNull(plugin.destinationPath)
+    }
+
+    @Test
+    void testPluginPropertyAnnotations() {
+        // Verify plugin has the expected properties
+        def fields = NodeFileCopyPlugin.getDeclaredFields()
+        def propertyNames = fields*.name
+        
+        assertTrue(propertyNames.contains('sourceNode'))
+        assertTrue(propertyNames.contains('sourcePath'))
+        assertTrue(propertyNames.contains('destinationNodes'))
+        assertTrue(propertyNames.contains('destinationPath'))
+        assertTrue(propertyNames.contains('recursive'))
+        assertTrue(propertyNames.contains('preserveAttributes'))
+        assertTrue(propertyNames.contains('transferMode'))
+        assertTrue(propertyNames.contains('tempDirectory'))
+        assertTrue(propertyNames.contains('connectionTimeout'))
+        assertTrue(propertyNames.contains('parallelTransfers'))
+        assertTrue(propertyNames.contains('continueOnError'))
+    }
+
+    @Test
+    void testNodeCredentialsEquality() {
+        byte[] key1 = "key".bytes
+        byte[] key2 = "key".bytes
+        
+        def creds1 = new NodeCredentials("user", 22, key1, null)
+        def creds2 = new NodeCredentials("user", 22, key2, null)
+        
+        assertEquals(creds1.username, creds2.username)
+        assertEquals(creds1.port, creds2.port)
+    }
+
+    @Test
+    void testNodeCredentialsWithDifferentPorts() {
+        byte[] key = "key".bytes
+        
+        def creds22 = new NodeCredentials("user", 22, key, null)
+        def creds2222 = new NodeCredentials("user", 2222, key, null)
+        
+        assertNotEquals(creds22.port, creds2222.port)
+    }
+
+    @Test
+    void testParseNodesWithCommasOnly() {
+        String input = ",,,"
+        List<String> nodes = input.split(',').collect { it.trim() }.findAll { it }
+        
+        assertEquals(0, nodes.size())
+    }
+
+    @Test
+    void testParseNodesWithMixedContent() {
+        String input = "node1,,node2,  ,node3"
+        List<String> nodes = input.split(',').collect { it.trim() }.findAll { it }
+        
+        assertEquals(3, nodes.size())
     }
 }

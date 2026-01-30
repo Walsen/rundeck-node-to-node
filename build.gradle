@@ -25,8 +25,8 @@ dependencies {
     compileOnly "org.rundeck:rundeck-core:${rundeckVersion}"
     testImplementation "org.rundeck:rundeck-core:${rundeckVersion}"
     
-    // SSH/SCP support
-    pluginLibs 'com.jcraft:jsch:0.1.55'
+    // SSH/SCP support - using mwiede's JSch fork with modern algorithm support
+    pluginLibs 'com.github.mwiede:jsch:0.2.18'
     
     // Testing
     testImplementation 'junit:junit:4.13.2'

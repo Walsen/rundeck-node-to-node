@@ -127,7 +127,7 @@ class FileCopyService {
         
         Properties config = new Properties()
         config.put("StrictHostKeyChecking", "no")
-        config.put("PreferredAuthentications", "publickey,keyboard-interactive,password")
+        config.put("PreferredAuthentications", "publickey")
         session.setConfig(config)
 
         return session

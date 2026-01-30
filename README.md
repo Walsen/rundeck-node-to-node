@@ -1,6 +1,6 @@
 # Rundeck Node File Copy Plugin
 
-A Rundeck workflow step plugin that enables copying files and directories from one source node to multiple destination nodes using SSH/SCP. Integrates with Rundeck's node definitions and key storage for seamless authentication.
+A Rundeck workflow step plugin that enables copying files and directories from one source node to multiple destination nodes using SSH/SFTP. Integrates with Rundeck's node definitions and key storage for seamless authentication.
 
 ## Features
 
@@ -13,6 +13,7 @@ A Rundeck workflow step plugin that enables copying files and directories from o
 - Parallel or sequential transfers to multiple destinations
 - Continue on error option for partial success handling
 - Recursive directory copying with attribute preservation
+- Supports modern SSH algorithms (rsa-sha2-256, rsa-sha2-512)
 
 ## Requirements
 
@@ -49,21 +50,21 @@ The plugin uses Rundeck's existing node definitions. Each node must have:
 app-server-01:
   hostname: 192.168.1.10
   username: deploy
-  ssh-key-storage-path: keys/project/deploy-key
+  ssh-key-storage-path: keys/project/myproject/deploy-key
   tags: app,production
 
 backup-server:
   hostname: 192.168.1.50
   username: backup
-  ssh-key-storage-path: keys/project/backup-key
+  ssh-key-storage-path: keys/project/myproject/backup-key
   tags: backup,production
 ```
 
 ### Setting Up Key Storage
 
 1. Go to **Project Settings** → **Key Storage**
-2. Add your SSH private keys (PEM format)
-3. Reference the path in node definitions (e.g., `keys/project/deploy-key`)
+2. Add your SSH private keys (PEM/RSA format)
+3. Reference the path in node definitions (e.g., `keys/project/myproject/deploy-key`)
 
 ## Plugin Properties
 
@@ -87,7 +88,7 @@ backup-server:
 
 Files are downloaded once to the Rundeck server, then uploaded to all destinations. Most reliable option.
 
-```text
+```
 Source Node --[SFTP]--> Rundeck Server --[SFTP]--> Destination Node 1
                                        --[SFTP]--> Destination Node 2
                                        --[SFTP]--> Destination Node N
@@ -97,7 +98,7 @@ Source Node --[SFTP]--> Rundeck Server --[SFTP]--> Destination Node 1
 
 Source node pushes directly to each destination using SCP. Faster but requires the source node to have SSH access to all destinations.
 
-```text
+```
 Source Node --[SCP]--> Destination Node 1
             --[SCP]--> Destination Node 2
             --[SCP]--> Destination Node N
@@ -151,6 +152,22 @@ Source Node --[SCP]--> Destination Node 1
       type: node-file-copy
 ```
 
+## Testing
+
+A Docker-based test environment is included in the `test/` directory:
+
+```bash
+cd test
+./setup.sh      # Build plugin and start test environment
+./teardown.sh   # Stop and cleanup
+```
+
+This starts:
+- Rundeck server with PostgreSQL on http://localhost:8081
+- Three test nodes (source-node, dest-node-1, dest-node-2)
+
+See [test/README.md](test/README.md) for detailed testing instructions.
+
 ## Troubleshooting
 
 ### Node Not Found
@@ -162,7 +179,8 @@ Source Node --[SCP]--> Destination Node 1
 
 - Verify `ssh-key-storage-path` attribute is set on the node
 - Check the key exists in Rundeck's key storage
-- Ensure the key format is correct (PEM)
+- Ensure the key format is correct (PEM/RSA format)
+- The plugin supports modern SSH algorithms (rsa-sha2-256/512)
 
 ### Connection Refused
 
@@ -181,10 +199,24 @@ Source Node --[SCP]--> Destination Node 1
 git clone <repository-url>
 cd rundeck-node-file-copy-plugin
 
+# Build
 ./gradlew build
+
+# Run tests
 ./gradlew test
+
+# The plugin JAR will be in build/libs/
 ```
+
+## Changelog
+
+### v1.0.0
+- Initial release
+- Via-rundeck and direct transfer modes
+- Parallel transfers support
+- Continue on error option
+- Modern SSH algorithm support (mwiede/jsch)
 
 ## License
 
-See LICENSE file.
+See [LICENSE](LICENSE) file.

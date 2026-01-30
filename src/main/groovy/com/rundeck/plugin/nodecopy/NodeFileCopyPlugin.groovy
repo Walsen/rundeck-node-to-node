@@ -1,7 +1,7 @@
 package com.rundeck.plugin.nodecopy
 
 import com.dtolabs.rundeck.core.common.INodeEntry
-import com.dtolabs.rundeck.core.common.IRundeckProject
+import com.dtolabs.rundeck.core.common.INodeSet
 import com.dtolabs.rundeck.core.execution.workflow.steps.StepException
 import com.dtolabs.rundeck.core.plugins.Plugin
 import com.dtolabs.rundeck.core.storage.ResourceMeta
@@ -131,11 +131,11 @@ class NodeFileCopyPlugin implements StepPlugin {
         }
 
         // Get node entries from Rundeck
-        def project = context.frameworkProject
-        INodeEntry srcNode = getNodeEntry(project, srcNodeName)
+        def nodes = context.executionContext.nodes
+        INodeEntry srcNode = getNodeEntry(nodes, srcNodeName)
         
         List<INodeEntry> dstNodes = dstNodeNames.collect { nodeName ->
-            getNodeEntry(project, nodeName)
+            getNodeEntry(nodes, nodeName)
         }
 
         // Get SSH credentials from Rundeck's key storage
@@ -264,16 +264,7 @@ class NodeFileCopyPlugin implements StepPlugin {
         }
     }
 
-    private INodeEntry getNodeEntry(String projectName, String nodeName) throws StepException {
-        // This will be resolved via context.frameworkProject
-        throw new StepException(
-            "Node '${nodeName}' not found in project",
-            FileCopyFailureReason.INVALID_CONFIGURATION
-        )
-    }
-
-    private INodeEntry getNodeEntry(IRundeckProject project, String nodeName) throws StepException {
-        def nodeSet = project.nodeSet
+    private INodeEntry getNodeEntry(INodeSet nodeSet, String nodeName) throws StepException {
         def node = nodeSet?.getNode(nodeName)
         
         if (!node) {
