@@ -210,6 +210,10 @@ cd rundeck-node-file-copy-plugin
 
 ## Changelog
 
+### v1.0.1
+- Fix: Single file copy with rename now works correctly
+- Fix: Auto-create parent directories when destination path doesn't exist
+
 ### v1.0.0
 - Initial release
 - Via-rundeck and direct transfer modes
