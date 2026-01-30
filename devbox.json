@@ -2,7 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
   "packages": [
     "just@latest",
-    "jdk-headless@11.0.31+0"
+    "jdk-headless@11.0.31+0",
+    "gh@latest"
   ],
   "shell": {
     "init_hook": [
